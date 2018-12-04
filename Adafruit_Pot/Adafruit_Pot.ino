@@ -1,29 +1,55 @@
-unsigned long timer = 0;
-unsigned long interval = 1000;
-boolean LEDstate;
-int value = 0;
-
 #if defined(ARDUINO_SAMD_ZERO) && defined(SERIAL_PORT_USBVIRTUAL)
   // Required for Serial on Zero based boards
   #define Serial SERIAL_PORT_USBVIRTUAL
 #endif
 
+// Light One:    Analog in: A0      PWM Out: 13  (pin 13 also has RED LED)
+// Light Two:    Analog in: A1      PWM out: 12
+
+const int L1IN = A0;
+const int L1PWM = 13;
+
+const int L2IN = A1;
+const int L2PWM = 12;
+
+// The enable signal on the LEDs are active LOW!
+
+
 void setup() {
-  // initialize digital pin 13 as an output.
-  pinMode(13, OUTPUT);
+
+  pinMode(L1PWM, OUTPUT);
+  digitalWrite(L1PWM, HIGH);
+
+  pinMode(L2PWM, OUTPUT);
+  digitalWrite(L2PWM, HIGH);
+  
   Serial.begin(9600);
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  value = analogRead(A0);
-  interval = map(value, 0, 1024, 500,0);
+  control_pwm( analogRead(L1IN), L1PWM );
+  control_pwm( analogRead(L2IN), L2PWM );
+
+  // No need to update any faster than a few Hz
+  delay(100);
+}
+
+
+void control_pwm( int ain, int pwm_pin ) {
   
-  if (millis() - timer > interval) { //Toggle LED state every time interval has elapsed
-    timer = millis();
-    LEDstate = !LEDstate;
+  int pwm = map(ain, 0, 1023, 255, 0);
+
+  
+  if( pwm >= 254 ) {
+    digitalWrite( pwm_pin, HIGH );
+  } else if( pwm <= 2 ) {
+    digitalWrite( pwm_pin, LOW );
+  } else {
+    analogWrite( pwm_pin, pwm );
   }
-  digitalWrite(13, LEDstate);   // Write LED state
-  analogWrite(11, value);       // Write PWM Output to pin11
-  Serial.println(value);
+  
+  Serial.print(pwm_pin);
+  Serial.print(" : ");
+  Serial.println(pwm);
 }
